@@ -1,3 +1,29 @@
-[gd_scene format=3 uid="uid://bj6w7md54cy55"]
+[gd_scene load_steps=6 format=3 uid="uid://bj6w7md54cy55"]
 
-[node name="Node3D" type="Node3D"]
+[sub_resource type="PlaneMesh" id="PlaneMesh_7dm0k"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_7dm0k"]
+
+[sub_resource type="Sky" id="Sky_ig7tw"]
+sky_material = SubResource("ProceduralSkyMaterial_7dm0k")
+
+[sub_resource type="Environment" id="Environment_7dm0k"]
+background_mode = 2
+sky = SubResource("Sky_ig7tw")
+
+[sub_resource type="CameraAttributesPhysical" id="CameraAttributesPhysical_ig7tw"]
+
+[node name="Main" type="Node3D"]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.8702439, 0.49262103, 0, -0.49262103, 0.8702439, 0, 2.2307749, 2.3276982)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(100, 0, 0, 0, 1, 0, 0, 0, 100, 0, 0, 0)
+mesh = SubResource("PlaneMesh_7dm0k")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_7dm0k")
+camera_attributes = SubResource("CameraAttributesPhysical_ig7tw")
+
+[node name="Skeleton3D" type="Skeleton3D" parent="."]
