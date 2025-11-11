@@ -3,3 +3,5 @@
 /android/
 .vscode/
 _build/
+*.dll
+*.pdb
