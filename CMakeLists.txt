@@ -49,6 +49,8 @@ target_sources(${LIBNAME}
     src/register_types.h
     src/motion_matching.cpp
     src/motion_matching.h
+    src/biovision_hierarchy.cpp
+    src/biovision_hierarchy.h
 )
 
 # Fetch a list of the xml files to use for documentation and add to our target
