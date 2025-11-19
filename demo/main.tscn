@@ -1,4 +1,6 @@
-[gd_scene load_steps=6 format=3 uid="uid://bj6w7md54cy55"]
+[gd_scene load_steps=7 format=3 uid="uid://bj6w7md54cy55"]
+
+[ext_resource type="Animations" uid="uid://eck5bwyli85w" path="res://animations.tres" id="1_ig7tw"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_7dm0k"]
 
@@ -26,4 +28,7 @@ mesh = SubResource("PlaneMesh_7dm0k")
 environment = SubResource("Environment_7dm0k")
 camera_attributes = SubResource("CameraAttributesPhysical_ig7tw")
 
-[node name="Skeleton3D" type="Skeleton3D" parent="."]
+[node name="MotionMatching" type="MotionMatching" parent="."]
+animations = ExtResource("1_ig7tw")
+
+[node name="Skeleton3D" type="Skeleton3D" parent="MotionMatching"]

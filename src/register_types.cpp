@@ -5,7 +5,7 @@
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 
-#include "biovision_hierarchy.h"
+#include "animations.h"
 #include "motion_matching.h"
 
 using namespace godot;
@@ -16,7 +16,7 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 		return;
 	}
 	GDREGISTER_CLASS(MotionMatching);
-	GDREGISTER_CLASS(BiovisionHierarchy);
+	GDREGISTER_CLASS(Animations);
 }
 
 void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {
