@@ -1,34 +1,55 @@
 #pragma once
 
-#include <godot_cpp/classes/file_access.hpp>
-#include <godot_cpp/classes/resource.hpp>
-#include <godot_cpp/classes/skeleton3d.hpp>
+#include <godot_cpp/variant/packed_string_array.hpp>
+#include <godot_cpp/templates/vector.hpp>
 
 using namespace godot;
 
+class Frames;
+
+enum class FrameParseState {
+	X_POSITION,
+	Y_POSITION,
+	Z_POSITION,
+
+	X_ROTATION,
+	Y_ROTATION,
+	Z_ROTATION,
+
+	NEXT_JOINT,
+};
+
 class BVHParser {
 public:
-	BVHParser(Ref<FileAccess> bvh_file);
+	BVHParser(const String& file_path);
 
-	bool parse();
+	bool parse(Frames& frames);
+
+	const PackedStringArray& get_errors() const;
 
 private:
 	// parsing character functions
+	bool _is_whitespace();
 	void _skip_whitespace();
 	bool _is_at_end();
 	bool _expect(const String& str);
-	bool _expect(uint8_t c);
-	uint8_t _peek();
-	uint8_t _advance();
+	
+	String _string();
+	bool _number(float& d);
+	bool _int(int& i);
+	bool _offset(Vector3& offset);
+	bool _channels();
 
-	bool _parse_hierarchy();
-	bool _parse_root();
-	bool _parse_joint();
+	void _parse_joints(Frames& frames);
+	void _parse_hierarchy(Frames& frames);
+	void _parse_root(Frames& frames);
+	void _parse_joint(Frames& frames);
 
-	bool _parse_motion();
+	void _parse_motion(Frames& frames);
 
-	uint8_t* start;
-	uint8_t* curr;
-	PackedByteArray source;
-	uint64_t length;
+	size_t _start = 0;
+	size_t _curr = 0;
+	String _source;
+	Vector<FrameParseState> _frame_parse_states;
+	PackedStringArray _errors;
 };

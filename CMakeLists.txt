@@ -53,6 +53,8 @@ target_sources(${LIBNAME}
     src/bvh_parser.h
     src/animations.cpp
     src/animations.h
+    src/frames.cpp
+    src/frames.h
 )
 
 # Fetch a list of the xml files to use for documentation and add to our target

@@ -19,6 +19,9 @@ void MotionMatching::_notification(int what) {
 	case NOTIFICATION_READY:
 		{
 			TypedArray<Node> children = find_children("*", "Skeleton3D");
+			_skeleton = Object::cast_to<Skeleton3D>(children[0]);
+
+			_animations->parse();
 		}
 	}
 }
@@ -26,6 +29,20 @@ void MotionMatching::_notification(int what) {
 PackedStringArray MotionMatching::_get_configuration_warnings() const
 {
 	PackedStringArray errors;
-	_animations->parse(&errors);
+
+	// parse animations
+	if (_animations.is_null()) {
+		errors.append("Animations should not be empty");
+	}
+	else {
+		_animations->parse(&errors);
+	}
+
+	// get skeleton child node
+	TypedArray<Node> children = find_children("*", "Skeleton3D");
+	if (children.size() != 1) {
+		errors.append("Expected one skeleton");
+	}
+
 	return errors;
 }
