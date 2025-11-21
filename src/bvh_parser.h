@@ -35,16 +35,16 @@ private:
 	bool _expect(const std::string& str);
 	void _next_line();
 
-	std::string_view _string();
+	const std::string& _string();
 	bool _number(float& d);
 	bool _int(int& i);
 	bool _offset(Vector3& offset);
 	bool _channels();
 
-	void _parse_joints(Frames& frames);
+	void _parse_joints(int parent, Frames& frames);
 	void _parse_hierarchy(Frames& frames);
 	void _parse_root(Frames& frames);
-	void _parse_joint(Frames& frames);
+	void _parse_joint(int parent, Frames& frames);
 
 	void _parse_motion(Frames& frames);
 	void _parse_frame(int frame, Frames& frames);

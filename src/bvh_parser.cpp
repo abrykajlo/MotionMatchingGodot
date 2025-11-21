@@ -44,7 +44,7 @@ void BVHParser::_next_line()
 	_stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
-std::string_view BVHParser::_string()
+const std::string& BVHParser::_string()
 {
 	_stream >> _input;
 	return _input;
@@ -118,12 +118,12 @@ bool BVHParser::_channels()
 	return true;
 }
 
-void BVHParser::_parse_joints(Frames& frames)
+void BVHParser::_parse_joints(int parent, Frames& frames)
 {
 	int count = 0;
 	std::string_view next = _string();
 	while (next == "JOINT") {
-		_parse_joint(frames);
+		_parse_joint(parent, frames);
 		next = _string();
 		count++;
 	}
@@ -152,31 +152,35 @@ void BVHParser::_parse_hierarchy(Frames& frames)
 
 void BVHParser::_parse_root(Frames& frames)
 {
-	std::string_view root_name = _string();
+	_string();
+	frames.get_root().set_name(_input);
 	_expect("{");
 
 	Vector3 offset;
 	_offset(offset);
+	frames.get_root().set_offset(offset);
 
 	_channels();
 
-	_parse_joints(frames);
+	_parse_joints(0, frames);
 	if (_input != "}") {
 		_errors.append("Expected end of ROOT.");
 	}
 }
 
-void BVHParser::_parse_joint(Frames& frames)
+void BVHParser::_parse_joint(int parent, Frames& frames)
 {
-	std::string_view joint_name = _string();
+	std::string joint_name = _string();
 	_expect("{");
 
 	Vector3 offset;
 	_offset(offset);
 
+	int id = frames.add_joint(joint_name, parent, offset);
+
 	_channels();
 
-	_parse_joints(frames);
+	_parse_joints(id, frames);
 	if (_input != "}") {
 		_errors.append("Expected end of JOINT");
 	}
@@ -244,7 +248,7 @@ void BVHParser::_parse_frame(int frame, Frames& frames)
 		parse_state_idx++;
 	}
 
-	frames.set_root_position(frame, position);
+	frames.get_root().set_position(frame, position);
 	// parse rotations
 	for (; parse_state_idx < _frame_parse_states.size(); parse_state_idx++) {
 		Quaternion rotation(0, 0, 0, 1);
@@ -280,7 +284,7 @@ void BVHParser::_parse_frame(int frame, Frames& frames)
 			break;
 		}
 		case FrameParseState::NEXT_JOINT: {
-			frames.set_joint_rotation(frame, joint++, rotation);
+			frames.get_joint(joint++).set_rotation(frame, rotation);
 			rotation = Quaternion(0, 0, 0, 1); // reset quaternion
 			break;
 		}
