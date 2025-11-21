@@ -7,7 +7,7 @@
 
 BVHParser::BVHParser(const String& file_path)
 {
-	_source = FileAccess::get_file_as_string(file_path);
+	_stream = std::istringstream(FileAccess::get_file_as_string(file_path).ascii().get_data());
 }
 
 bool BVHParser::parse(Frames& frames)
@@ -15,7 +15,7 @@ bool BVHParser::parse(Frames& frames)
 	_parse_hierarchy(frames);
 	_parse_motion(frames);
 	if (!_is_at_end()) {
-		_errors.append("Expected EOF.");
+		_errors.append(vformat("Expected EOF got %s.", _input.c_str()));
 	}
 	return _errors.size() == 0;
 }
@@ -25,79 +25,51 @@ const PackedStringArray& BVHParser::get_errors() const
 	return _errors;
 }
 
-bool BVHParser::_is_whitespace()
-{
-	switch (_source[_curr]) {
-	case ' ':
-	case '\r':
-	case '\t':
-	case '\n':
-		return true;
-	}
-	return false;
-}
-
-void BVHParser::_skip_whitespace()
-{
-	for (;;) {
-		if (_is_at_end()) return;
-		if (_is_whitespace()) {
-			_curr++;
-			continue;
-		}
-		break;
-	}
-}
-
 bool BVHParser::_is_at_end()
 {
-	return _curr >= _source.length();
+	return _stream.eof();
 }
 
-bool BVHParser::_expect(const String& str)
+bool BVHParser::_expect(const std::string& str)
 {
 	if (str != _string()) {
-		_errors.append(vformat("Expected \"%s.\"", str));
+		_errors.append(vformat("Expected \"%s.\"", str.c_str()));
 		return false;
 	}
 	return true;
 }
 
-String BVHParser::_string()
+void BVHParser::_next_line()
 {
-	_skip_whitespace();
-	_start = _curr;
-	for (;;) {
-		if (_is_whitespace()) {
-			break;
-		}
-		_curr++;
-	}
-	return _source.substr(_start, _curr - _start);
+	_stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+}
+
+std::string_view BVHParser::_string()
+{
+	_stream >> _input;
+	return _input;
 }
 
 bool BVHParser::_number(float &d)
 {
-	String str = _string();
-	if (str.is_valid_float()) {
-		d = str.to_float();
-		return true;
+	_stream >> d;
+	if (_stream.fail()) {
+		_errors.append("Expected floating point number.");
+		return false;
 	}
 
-	_errors.append("Expected floating point number.");
-	return false;
+	return true;
 }
 
 bool BVHParser::_int(int& i)
 {
-	String str = _string();
-	if (str.is_valid_int()) {
-		i = str.to_int();
-		return true;
+	_stream >> i;
+	if (_stream.fail()) {
+		_errors.append("Expected integer.");
+		return false;
 	}
 
-	_errors.append("Expected integer.");
-	return false;
+	return true;
 }
 
 bool BVHParser::_offset(Vector3& offset)
@@ -114,7 +86,7 @@ bool BVHParser::_channels()
 	}
 
 	for (int i = 0; i < count; i++) {
-		String channel_name = _string();
+		std::string_view channel_name = _string();
 		if (channel_name == "Xrotation") {
 			_frame_parse_states.append(FrameParseState::X_ROTATION);
 			continue;
@@ -139,7 +111,7 @@ bool BVHParser::_channels()
 			_frame_parse_states.append(FrameParseState::Z_POSITION);
 			continue;
 		}
-		_errors.append(vformat("Invalid channel name \"%s\"", channel_name));
+		_errors.append(vformat("Invalid channel name \"%s\"", _input.c_str()));
 		return false;
 	}
 	_frame_parse_states.append(FrameParseState::NEXT_JOINT);
@@ -149,17 +121,17 @@ bool BVHParser::_channels()
 void BVHParser::_parse_joints(Frames& frames)
 {
 	int count = 0;
-	String next = _string();
+	std::string_view next = _string();
 	while (next == "JOINT") {
 		_parse_joint(frames);
 		next = _string();
 		count++;
 	}
 	if (count == 0) {
-		String site = _string();
-		if (next != "End" || site != "Site") {
-			_errors.append("Expected \"End Site\".");
+		if (next != "End") {
+			_errors.append("Expected \"End\".");
 		}
+		_expect("Site");
 
 		_expect("{");
 
@@ -169,7 +141,6 @@ void BVHParser::_parse_joints(Frames& frames)
 		_expect("}");
 		next = _string();
 	}
-	_curr = _start;
 }
 
 void BVHParser::_parse_hierarchy(Frames& frames)
@@ -181,7 +152,7 @@ void BVHParser::_parse_hierarchy(Frames& frames)
 
 void BVHParser::_parse_root(Frames& frames)
 {
-	String root_name = _string();
+	std::string_view root_name = _string();
 	_expect("{");
 
 	Vector3 offset;
@@ -190,14 +161,14 @@ void BVHParser::_parse_root(Frames& frames)
 	_channels();
 
 	_parse_joints(frames);
-	if (_string() != "}") {
+	if (_input != "}") {
 		_errors.append("Expected end of ROOT.");
 	}
 }
 
 void BVHParser::_parse_joint(Frames& frames)
 {
-	String joint_name = _string();
+	std::string_view joint_name = _string();
 	_expect("{");
 
 	Vector3 offset;
@@ -206,7 +177,7 @@ void BVHParser::_parse_joint(Frames& frames)
 	_channels();
 
 	_parse_joints(frames);
-	if (_string() != "}") {
+	if (_input != "}") {
 		_errors.append("Expected end of JOINT");
 	}
 }
@@ -228,63 +199,96 @@ void BVHParser::_parse_motion(Frames& frames)
 	_number(frame_time);
 	frames.set_frame_time(frame_time);
 
+	_next_line();
+
 	// parse frames
 	for (int f = 0; f < frame_count; f++) {
-		int joint = 0; // start at the root
-		// parse root frame position
-		Vector3 position;
-		bool done_parsing_position = false;
-		int parse_state_idx = 0;
-		while (!done_parsing_position) {
-			switch (_frame_parse_states[parse_state_idx]) {
-			case FrameParseState::X_POSITION:
-				_number(position.x);
-				break;
-			case FrameParseState::Y_POSITION:
-				_number(position.y);
-				break;
-			case FrameParseState::Z_POSITION:
-				_number(position.z);
-				break;
-			default:
-				done_parsing_position = true;
-			}
-			parse_state_idx++;
-		}
+		_parse_frame(f, frames);
+	}
 
-		frames.set_root_position(f, position);
-		// parse rotations
-		for (; parse_state_idx < _frame_parse_states.size(); parse_state_idx++) {
-			Quaternion rotation(0, 0, 0, 1);
-			switch (_frame_parse_states[parse_state_idx]) {
-			case FrameParseState::X_ROTATION: {
-				Vector3 x_euler;
-				_number(x_euler.x);
-				auto x = Quaternion::from_euler(x_euler);
-				rotation *= x;
-				break;
+	_next_line();
+}
+
+void BVHParser::_parse_frame(int frame, Frames& frames)
+{
+	std::getline(_stream, _input);
+	std::istringstream frame_stream(_input);
+	int joint = 0; // start at the root
+	// parse root frame position
+	Vector3 position;
+	bool done_parsing_position = false;
+	int parse_state_idx = 0;
+	while (!done_parsing_position) {
+		switch (_frame_parse_states[parse_state_idx]) {
+		case FrameParseState::X_POSITION:
+			frame_stream >> position.x;
+			if (frame_stream.fail()) {
+				_errors.append("Expected XPosition number.");
 			}
-			case FrameParseState::Y_ROTATION: {
-				Vector3 y_euler;
-				_number(y_euler.y);
-				auto y = Quaternion::from_euler(y_euler);
-				rotation *= y;
-				break;
+			break;
+		case FrameParseState::Y_POSITION:
+			frame_stream >> position.y;
+			if (frame_stream.fail()) {
+				_errors.append("Expected YPosition number.");
 			}
-			case FrameParseState::Z_ROTATION: {
-				Vector3 z_euler;
-				_number(z_euler.z);
-				auto z = Quaternion::from_euler(z_euler);
-				rotation *= z;
-				break;
+			break;
+		case FrameParseState::Z_POSITION:
+			frame_stream >> position.z;
+			if (frame_stream.fail()) {
+				_errors.append("Expected ZPosition number.");
 			}
-			case FrameParseState::NEXT_JOINT: {
-				frames.set_joint_rotation(f, joint++, rotation);
-				rotation = Quaternion(0, 0, 0, 1); // reset quaternion
-				break;
+			break;
+		default:
+			done_parsing_position = true;
+		}
+		parse_state_idx++;
+	}
+
+	frames.set_root_position(frame, position);
+	// parse rotations
+	for (; parse_state_idx < _frame_parse_states.size(); parse_state_idx++) {
+		Quaternion rotation(0, 0, 0, 1);
+		switch (_frame_parse_states[parse_state_idx]) {
+		case FrameParseState::X_ROTATION: {
+			Vector3 x_euler;
+			frame_stream >> x_euler.x;
+			if (frame_stream.fail()) {
+				_errors.append("Expected XRotation number.");
 			}
+			auto x = Quaternion::from_euler(x_euler);
+			rotation *= x;
+			break;
+		}
+		case FrameParseState::Y_ROTATION: {
+			Vector3 y_euler;
+			frame_stream >> y_euler.y;
+			if (frame_stream.fail()) {
+				_errors.append("Expected YRotation number.");
 			}
+			auto y = Quaternion::from_euler(y_euler);
+			rotation *= y;
+			break;
+		}
+		case FrameParseState::Z_ROTATION: {
+			Vector3 z_euler;
+			frame_stream >> z_euler.z;
+			if (frame_stream.fail()) {
+				_errors.append("Expected ZRotation number.");
+			}
+			auto z = Quaternion::from_euler(z_euler);
+			rotation *= z;
+			break;
+		}
+		case FrameParseState::NEXT_JOINT: {
+			frames.set_joint_rotation(frame, joint++, rotation);
+			rotation = Quaternion(0, 0, 0, 1); // reset quaternion
+			break;
+		}
 		}
 	}
-	_skip_whitespace();
+
+	frame_stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+	if (!frame_stream.eof()) {
+		_errors.append("Expected end of frame.");
+	}
 }

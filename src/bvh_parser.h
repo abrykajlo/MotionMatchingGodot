@@ -3,6 +3,8 @@
 #include <godot_cpp/variant/packed_string_array.hpp>
 #include <godot_cpp/templates/vector.hpp>
 
+#include <sstream>
+
 using namespace godot;
 
 class Frames;
@@ -29,12 +31,11 @@ public:
 
 private:
 	// parsing character functions
-	bool _is_whitespace();
-	void _skip_whitespace();
 	bool _is_at_end();
-	bool _expect(const String& str);
-	
-	String _string();
+	bool _expect(const std::string& str);
+	void _next_line();
+
+	std::string_view _string();
 	bool _number(float& d);
 	bool _int(int& i);
 	bool _offset(Vector3& offset);
@@ -46,10 +47,10 @@ private:
 	void _parse_joint(Frames& frames);
 
 	void _parse_motion(Frames& frames);
+	void _parse_frame(int frame, Frames& frames);
 
-	size_t _start = 0;
-	size_t _curr = 0;
-	String _source;
+	std::istringstream _stream;
+	std::string _input;
 	Vector<FrameParseState> _frame_parse_states;
 	PackedStringArray _errors;
 };
