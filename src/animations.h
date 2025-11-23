@@ -4,7 +4,7 @@
 
 #include <godot_cpp/classes/resource.hpp>
 
-#include <unordered_map>
+#include <vector>
 
 using namespace godot;
 
@@ -18,10 +18,13 @@ public:
 	const String& get_data_path();
 
 	void parse(PackedStringArray* errors = nullptr);
+	const Frames& get(int animation) const;
+	size_t size();
+	void setup_skeleton(Skeleton3D& skeleton);
 
 protected:
 	String _data_path;
-	std::unordered_map<std::string, Frames> _animations;
+	std::vector<Frames> _animations;
 
 	static void _bind_methods();
 };

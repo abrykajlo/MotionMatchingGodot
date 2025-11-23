@@ -47,8 +47,8 @@ target_sources(${LIBNAME}
     PRIVATE
     src/register_types.cpp
     src/register_types.h
-    src/motion_matching.cpp
-    src/motion_matching.h
+    src/motion_matching_character.cpp
+    src/motion_matching_character.h
     src/bvh_parser.cpp
     src/bvh_parser.h
     src/animations.cpp

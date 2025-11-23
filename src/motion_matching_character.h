@@ -9,17 +9,18 @@
 
 using namespace godot;
 
-class MotionMatching : public Node {
-	GDCLASS(MotionMatching, Node)
+class MotionMatchingCharacter : public Node {
+	GDCLASS(MotionMatchingCharacter, Node)
 
 public:
-	MotionMatching() = default;
-	~MotionMatching() override = default;
+	MotionMatchingCharacter() = default;
+	~MotionMatchingCharacter() override = default;
 
 	void set_animations(Ref<Animations> animations);
 	Ref<Animations> get_animations();
 
 	virtual PackedStringArray _get_configuration_warnings() const override;
+	virtual void _process(double deltaTime) override;
 
 protected:
 	static void _bind_methods();
@@ -27,4 +28,5 @@ protected:
 
 	Skeleton3D* _skeleton = nullptr;
 	Ref<Animations> _animations;
+	double _curr_time = 0;
 };

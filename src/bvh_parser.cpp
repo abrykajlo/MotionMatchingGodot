@@ -118,12 +118,12 @@ bool BVHParser::_channels()
 	return true;
 }
 
-void BVHParser::_parse_joints(int parent, Frames& frames)
+void BVHParser::_parse_joints(Frames& frames)
 {
 	int count = 0;
 	std::string_view next = _string();
 	while (next == "JOINT") {
-		_parse_joint(parent, frames);
+		_parse_joint(frames);
 		next = _string();
 		count++;
 	}
@@ -153,7 +153,7 @@ void BVHParser::_parse_hierarchy(Frames& frames)
 void BVHParser::_parse_root(Frames& frames)
 {
 	_string();
-	frames.get_root().set_name(_input);
+	frames.get_root().set_name("Model_" + _input);
 	_expect("{");
 
 	Vector3 offset;
@@ -162,13 +162,13 @@ void BVHParser::_parse_root(Frames& frames)
 
 	_channels();
 
-	_parse_joints(0, frames);
+	_parse_joints(frames);
 	if (_input != "}") {
 		_errors.append("Expected end of ROOT.");
 	}
 }
 
-void BVHParser::_parse_joint(int parent, Frames& frames)
+void BVHParser::_parse_joint(Frames& frames)
 {
 	std::string joint_name = _string();
 	_expect("{");
@@ -176,11 +176,11 @@ void BVHParser::_parse_joint(int parent, Frames& frames)
 	Vector3 offset;
 	_offset(offset);
 
-	int id = frames.add_joint(joint_name, parent, offset);
+	frames.add_joint("Model_" + joint_name, offset);
 
 	_channels();
 
-	_parse_joints(id, frames);
+	_parse_joints(frames);
 	if (_input != "}") {
 		_errors.append("Expected end of JOINT");
 	}
@@ -252,34 +252,32 @@ void BVHParser::_parse_frame(int frame, Frames& frames)
 	// parse rotations
 	for (; parse_state_idx < _frame_parse_states.size(); parse_state_idx++) {
 		Quaternion rotation(0, 0, 0, 1);
+		float angle;
 		switch (_frame_parse_states[parse_state_idx]) {
 		case FrameParseState::X_ROTATION: {
-			Vector3 x_euler;
-			frame_stream >> x_euler.x;
+			frame_stream >> angle;
 			if (frame_stream.fail()) {
 				_errors.append("Expected XRotation number.");
 			}
-			auto x = Quaternion::from_euler(x_euler);
+			Quaternion x(Vector3(1, 0, 0), Math::deg_to_rad(angle));
 			rotation *= x;
 			break;
 		}
 		case FrameParseState::Y_ROTATION: {
-			Vector3 y_euler;
-			frame_stream >> y_euler.y;
+			frame_stream >> angle;
 			if (frame_stream.fail()) {
 				_errors.append("Expected YRotation number.");
 			}
-			auto y = Quaternion::from_euler(y_euler);
+			Quaternion y(Vector3(0, 1, 0), Math::deg_to_rad(angle));
 			rotation *= y;
 			break;
 		}
 		case FrameParseState::Z_ROTATION: {
-			Vector3 z_euler;
-			frame_stream >> z_euler.z;
+			frame_stream >> angle;
 			if (frame_stream.fail()) {
 				_errors.append("Expected ZRotation number.");
 			}
-			auto z = Quaternion::from_euler(z_euler);
+			Quaternion z(Vector3(0, 0, 1), Math::deg_to_rad(angle));
 			rotation *= z;
 			break;
 		}

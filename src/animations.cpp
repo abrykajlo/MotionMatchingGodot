@@ -3,6 +3,8 @@
 
 #include <godot_cpp/classes/dir_access.hpp>
 
+#include <cassert>
+
 void Animations::set_data_path(const String& data_path)
 {
 	_data_path = data_path;
@@ -24,8 +26,25 @@ void Animations::parse(PackedStringArray* errors)
 		if (!parser.parse(frames) && errors) {
 			errors->append_array(parser.get_errors());
 		}
-		_animations.insert(std::make_pair(file_name.ascii().get_data(), frames));
+		_animations.push_back(frames);
 	}
+}
+
+const Frames& Animations::get(int animation) const 
+{
+	assert(animation < _animations.size());
+	return _animations[animation];
+}
+
+void Animations::setup_skeleton(Skeleton3D& skeleton) 
+{
+	assert(_animations.size() > 0);
+	_animations[0].setup_skeleton(skeleton);
+}
+
+size_t Animations::size()
+{
+	return _animations.size();
 }
 
 void Animations::_bind_methods() {

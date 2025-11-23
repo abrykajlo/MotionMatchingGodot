@@ -41,10 +41,10 @@ private:
 	bool _offset(Vector3& offset);
 	bool _channels();
 
-	void _parse_joints(int parent, Frames& frames);
+	void _parse_joints(Frames& frames);
 	void _parse_hierarchy(Frames& frames);
 	void _parse_root(Frames& frames);
-	void _parse_joint(int parent, Frames& frames);
+	void _parse_joint(Frames& frames);
 
 	void _parse_motion(Frames& frames);
 	void _parse_frame(int frame, Frames& frames);

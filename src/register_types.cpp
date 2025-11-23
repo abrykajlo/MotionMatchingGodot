@@ -6,7 +6,7 @@
 #include <godot_cpp/godot.hpp>
 
 #include "animations.h"
-#include "motion_matching.h"
+#include "motion_matching_character.h"
 
 using namespace godot;
 
@@ -15,7 +15,7 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level)
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
-	GDREGISTER_CLASS(MotionMatching);
+	GDREGISTER_CLASS(MotionMatchingCharacter);
 	GDREGISTER_CLASS(Animations);
 }
 
