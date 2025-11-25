@@ -1,6 +1,8 @@
 #include "motion_matching_character.h"
 
 #include <godot_cpp/classes/mesh_instance3d.hpp>
+#include <godot_cpp/classes/input.hpp>
+#include <godot_cpp/classes/engine.hpp>
 
 #include <cassert>
 
@@ -23,13 +25,15 @@ void MotionMatchingCharacter::_notification(int what) {
 	case NOTIFICATION_READY:
 		{
 			TypedArray<Node> children = find_children("*", "Skeleton3D");
-			_skeleton = Object::cast_to<Skeleton3D>(children[0]);
-			assert(_skeleton != nullptr);
+			if (children.size() > 0) {
+				_skeleton = Object::cast_to<Skeleton3D>(children[0]);
+			}
 
 			if (_animations.is_valid()) {
 				_animations->parse();
-				const Frames& frames = _animations->get(0);
 				_animations->setup_skeleton(*_skeleton);
+
+				const Frames& frames = _animations->get(0);
 				frames.move_skeleton(*_skeleton, _curr_time);
 			}
 		}
@@ -49,7 +53,7 @@ PackedStringArray MotionMatchingCharacter::_get_configuration_warnings() const
 	}
 
 	// get skeleton child node
-	TypedArray<Node> children = find_children("*", "MeshInstance3D");
+	TypedArray<Node> children = find_children("*", "Skeleton3D");
 	if (children.size() != 1) {
 		errors.append("Expected one skeleton");
 	}
@@ -59,6 +63,17 @@ PackedStringArray MotionMatchingCharacter::_get_configuration_warnings() const
 
 void MotionMatchingCharacter::_process(double delta_time)
 {
+	if (Engine::get_singleton()->is_editor_hint()) {
+		return;
+	}
 	_curr_time += delta_time;
 	_animations->get(0).move_skeleton(*_skeleton, _curr_time);
+}
+
+void MotionMatchingCharacter::_input(const Ref<InputEvent>& p_event)
+{
+	Input* input = Input::get_singleton();
+	if (input->is_action_pressed("move_forward")) {
+		UtilityFunctions::print("input");
+	}
 }

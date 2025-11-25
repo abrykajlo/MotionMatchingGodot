@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://ckjfr6ag3kbab"]
+
+[ext_resource type="PackedScene" uid="uid://fqvk6rpb5xrw" path="res://model_skeleton.fbx" id="1_3vyb7"]
+
+[node name="Player" instance=ExtResource("1_3vyb7")]
+
+[node name="Producer Perspective" parent="Skeleton3D" index="0"]
+transform = Transform3D(1, -1.4428578e-16, 1.8819075e-15, -1.7194378e-16, 0.9859636, 0.16696054, -1.8795824e-15, -0.16696054, 0.9859636, 2.051692e-15, 1.4092295, 3.007189)
+bone_idx = 0

@@ -8,18 +8,8 @@
 using namespace godot;
 
 class Frames;
-
-enum class FrameParseState {
-	X_POSITION,
-	Y_POSITION,
-	Z_POSITION,
-
-	X_ROTATION,
-	Y_ROTATION,
-	Z_ROTATION,
-
-	NEXT_JOINT,
-};
+class RootFrames;
+class JointFrames;
 
 class BVHParser {
 public:
@@ -39,7 +29,8 @@ private:
 	bool _number(float& d);
 	bool _int(int& i);
 	bool _offset(Vector3& offset);
-	bool _channels();
+	bool _channels(RootFrames& root);
+	bool _channels(JointFrames& joint);
 
 	void _parse_joints(Frames& frames);
 	void _parse_hierarchy(Frames& frames);
@@ -48,9 +39,10 @@ private:
 
 	void _parse_motion(Frames& frames);
 	void _parse_frame(int frame, Frames& frames);
+	void _parse_frame_positions(int frame, RootFrames& root);
+	void _parse_frame_rotations(int frame, JointFrames& joint);
 
 	std::istringstream _stream;
 	std::string _input;
-	Vector<FrameParseState> _frame_parse_states;
 	PackedStringArray _errors;
 };

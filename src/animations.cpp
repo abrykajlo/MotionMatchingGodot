@@ -17,6 +17,7 @@ const String& Animations::get_data_path()
 
 void Animations::parse(PackedStringArray* errors)
 {
+	UtilityFunctions::print("Parsing BVH Files");
 	Ref<DirAccess> data = DirAccess::open(_data_path);
 	PackedStringArray files = data->get_files();
 	for (auto& file_name : files) {

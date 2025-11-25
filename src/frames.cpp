@@ -26,27 +26,19 @@ const RootFrames& Frames::get_root() const
 	return _root;
 }
 
-JointFrames& Frames::get_joint(int joint)
+int Frames::get_joint_count() const
 {
-	assert(joint - 1 < static_cast<int>(_joints.size()));
-	if (joint == 0) {
-		return _root;
-	}
-	return _joints[joint - 1];
+	return _joints.size();
 }
 
-const JointFrames& Frames::get_joint(int joint) const
+JointFrames& Frames::get_joint(int i) 
 {
-	assert(joint - 1 < static_cast<int>(_joints.size()));
-	if (joint == 0) {
-		return _root;
-	}
-	return _joints[joint - 1];
+	return _joints[i];
 }
 
-void Frames::add_joint(const std::string& name, const Vector3& offset)
+JointFrames& Frames::add_joint()
 {
-	_joints.emplace_back(name, offset);
+	return _joints.emplace_back();
 }
 
 void Frames::resize(int size)
@@ -75,21 +67,31 @@ void Frames::move_skeleton(Skeleton3D& skeleton, double time) const
 	int frame = static_cast<int>(time / _frame_time);
 	int next_frame = frame + 1;
 	float weight = time - static_cast<float>(frame) * _frame_time;
-	UtilityFunctions::print(frame);
 
 	skeleton.set_bone_pose_rotation(_root.get_id(), _root.get_rotation(frame));
+	skeleton.set_global_position(_root.get_position(frame));
 
 	for (const auto& joint : _joints) {
 		skeleton.set_bone_pose_rotation(joint.get_id(), joint.get_rotation(frame));
 	}
 }
 
-JointFrames::JointFrames(const std::string& name, const Vector3& offset) : _name(name), _offset(offset) {}
-
-void JointFrames::set_rotation(int frame, const Quaternion& rotation)
+void JointFrames::set_rot_x(int frame, float rotation)
 {
-	assert(frame < _rotations.size());
-	_rotations[frame] = rotation;
+	assert(frame < _rot_x.size());
+	_rot_x[frame] = rotation;
+}
+
+void JointFrames::set_rot_y(int frame, float rotation)
+{
+	assert(frame < _rot_y.size());
+	_rot_y[frame] = rotation;
+}
+
+void JointFrames::set_rot_z(int frame, float rotation)
+{
+	assert(frame < _rot_z.size());
+	_rot_z[frame] = rotation;
 }
 
 void JointFrames::set_offset(const Vector3& offset) {
@@ -101,8 +103,18 @@ void JointFrames::set_id(int32_t id)
 	_id = id;
 }
 
+void JointFrames::add_rot_channel(RotationChannel channel)
+{
+	_rot_channels.push_back(channel);
+}
+
 int32_t JointFrames::get_id() const {
 	return _id;
+}
+
+const std::vector<RotationChannel>& JointFrames::get_rot_channels() const
+{
+	return _rot_channels;
 }
 
 const Vector3& JointFrames::get_offset() const
@@ -110,10 +122,28 @@ const Vector3& JointFrames::get_offset() const
 	return _offset;
 }
 
-const Quaternion& JointFrames::get_rotation(int frame) const
+Quaternion JointFrames::get_rotation(int frame) const
 {
-	assert(frame < _rotations.size());
-	return _rotations[frame];
+	Quaternion qx(Vector3(1, 0, 0), Math::deg_to_rad(_rot_x[frame]));
+	Quaternion qy(Vector3(0, 1, 0), Math::deg_to_rad(_rot_y[frame]));
+	Quaternion qz(Vector3(0, 0, 1), Math::deg_to_rad(_rot_z[frame]));
+	Quaternion rotation;
+
+	for (auto channel : _rot_channels) {
+		switch (channel) {
+		case RotationChannel::RotationX:
+			rotation *= qx;
+			break;
+		case RotationChannel::RotationY:
+			rotation *= qy;
+			break;
+		case RotationChannel::RotationZ:
+			rotation *= qz;
+			break;
+		}
+	}
+
+	return rotation;
 }
 
 const std::string& JointFrames::get_name() const
@@ -123,7 +153,9 @@ const std::string& JointFrames::get_name() const
 
 void JointFrames::resize(int size)
 {
-	_rotations.resize(size);
+	_rot_x.resize(size);
+	_rot_y.resize(size);
+	_rot_z.resize(size);
 }
 
 void JointFrames::set_name(const std::string& name)
@@ -133,20 +165,43 @@ void JointFrames::set_name(const std::string& name)
 
 RootFrames::RootFrames() : JointFrames() {}
 
-void RootFrames::set_position(int frame, const Vector3& position)
+void RootFrames::set_pos_x(int frame, float x)
 {
-	assert(frame < _positions.size());
-	_positions[frame].x = position.x;
+	assert(frame < _pos_x.size());
+	_pos_x[frame] = x;
 }
 
-const Vector3& RootFrames::get_position(int frame) const
+void RootFrames::set_pos_y(int frame, float y)
 {
-	assert(frame < _positions.size());
-	return _positions[frame];
+	assert(frame < _pos_y.size());
+	_pos_y[frame] = y;
+}
+
+void RootFrames::set_pos_z(int frame, float z)
+{
+	assert(frame < _pos_z.size());
+	_pos_z[frame] = z;
+}
+
+void RootFrames::add_pos_channel(PositionChannel channel)
+{
+	_pos_channels.push_back(channel);
+}
+
+Vector3 RootFrames::get_position(int frame) const
+{
+	return Vector3(_pos_x[frame], _pos_y[frame], _pos_z[frame]);
+}
+
+const std::vector<PositionChannel>& RootFrames::get_pos_channels() const
+{
+	return _pos_channels;
 }
 
 void RootFrames::resize(int size)
 {
-	_positions.resize(size);
+	_pos_x.resize(size);
+	_pos_y.resize(size);
+	_pos_z.resize(size);
 	JointFrames::resize(size);
 }

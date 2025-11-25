@@ -1,0 +1,42 @@
+[gd_scene load_steps=10 format=3 uid="uid://bj6w7md54cy55"]
+
+[ext_resource type="Texture2D" uid="uid://bqkqca64yj1rs" path="res://resources/checker.png" id="1_o5qli"]
+[ext_resource type="Animations" uid="uid://eck5bwyli85w" path="res://resources/animations.tres" id="2_sugp2"]
+[ext_resource type="PackedScene" uid="uid://ckjfr6ag3kbab" path="res://scenes/player.tscn" id="3_sugp2"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0wfyh"]
+albedo_texture = ExtResource("1_o5qli")
+uv1_scale = Vector3(100, 100, 100)
+texture_filter = 0
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_7dm0k"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_7dm0k"]
+
+[sub_resource type="Sky" id="Sky_ig7tw"]
+sky_material = SubResource("ProceduralSkyMaterial_7dm0k")
+
+[sub_resource type="Environment" id="Environment_7dm0k"]
+background_mode = 2
+sky = SubResource("Sky_ig7tw")
+
+[sub_resource type="CameraAttributesPhysical" id="CameraAttributesPhysical_ig7tw"]
+
+[node name="Main" type="Node3D"]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -0.5701831, 0.82151765, 0, -0.82151765, -0.5701831, 0, 3.6253932, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(100, 0, 0, 0, 1, 0, 0, 0, 100, 0, 0, 0)
+material_override = SubResource("StandardMaterial3D_0wfyh")
+mesh = SubResource("PlaneMesh_7dm0k")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_7dm0k")
+camera_attributes = SubResource("CameraAttributesPhysical_ig7tw")
+
+[node name="MotionMatchingCharacter" type="MotionMatchingCharacter" parent="."]
+animations = ExtResource("2_sugp2")
+
+[node name="Player" parent="MotionMatchingCharacter" instance=ExtResource("3_sugp2")]

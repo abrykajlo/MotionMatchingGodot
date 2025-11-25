@@ -6,11 +6,12 @@
 #include <godot_cpp/classes/wrapped.hpp>
 #include <godot_cpp/variant/variant.hpp>
 #include <godot_cpp/classes/skeleton3d.hpp>
+#include <godot_cpp/classes/input_event.hpp>
 
 using namespace godot;
 
-class MotionMatchingCharacter : public Node {
-	GDCLASS(MotionMatchingCharacter, Node)
+class MotionMatchingCharacter : public Node3D {
+	GDCLASS(MotionMatchingCharacter, Node3D)
 
 public:
 	MotionMatchingCharacter() = default;
@@ -21,6 +22,7 @@ public:
 
 	virtual PackedStringArray _get_configuration_warnings() const override;
 	virtual void _process(double deltaTime) override;
+	virtual void _input(const Ref<InputEvent>& p_event) override;
 
 protected:
 	static void _bind_methods();

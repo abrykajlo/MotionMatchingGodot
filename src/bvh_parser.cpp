@@ -77,7 +77,7 @@ bool BVHParser::_offset(Vector3& offset)
 	return _expect("OFFSET") && _number(offset.x) && _number(offset.y) && _number(offset.z);
 }
 
-bool BVHParser::_channels()
+bool BVHParser::_channels(JointFrames& joint)
 {
 	_expect("CHANNELS");
 	int count;
@@ -88,33 +88,60 @@ bool BVHParser::_channels()
 	for (int i = 0; i < count; i++) {
 		std::string_view channel_name = _string();
 		if (channel_name == "Xrotation") {
-			_frame_parse_states.append(FrameParseState::X_ROTATION);
+			joint.add_rot_channel(RotationChannel::RotationX);
 			continue;
 		}
 		if (channel_name == "Yrotation") {
-			_frame_parse_states.append(FrameParseState::Y_ROTATION);
+			joint.add_rot_channel(RotationChannel::RotationY);
 			continue;
 		}
 		if (channel_name == "Zrotation") {
-			_frame_parse_states.append(FrameParseState::Z_ROTATION);
-			continue;
-		}
-		if (channel_name == "Xposition") {
-			_frame_parse_states.append(FrameParseState::X_POSITION);
-			continue;
-		}
-		if (channel_name == "Yposition") {
-			_frame_parse_states.append(FrameParseState::Y_POSITION);
-			continue;
-		}
-		if (channel_name == "Zposition") {
-			_frame_parse_states.append(FrameParseState::Z_POSITION);
+			joint.add_rot_channel(RotationChannel::RotationZ);
 			continue;
 		}
 		_errors.append(vformat("Invalid channel name \"%s\"", _input.c_str()));
 		return false;
 	}
-	_frame_parse_states.append(FrameParseState::NEXT_JOINT);
+	return true;
+}
+
+bool BVHParser::_channels(RootFrames& root)
+{
+	_expect("CHANNELS");
+	int count;
+	if (!_int(count)) {
+		return false;
+	}
+
+	for (int i = 0; i < count; i++) {
+		std::string_view channel_name = _string();
+		if (channel_name == "Xrotation") {
+			root.add_rot_channel(RotationChannel::RotationX);
+			continue;
+		}
+		if (channel_name == "Yrotation") {
+			root.add_rot_channel(RotationChannel::RotationY);
+			continue;
+		}
+		if (channel_name == "Zrotation") {
+			root.add_rot_channel(RotationChannel::RotationZ);
+			continue;
+		}
+		if (channel_name == "Xposition") {
+			root.add_pos_channel(PositionChannel::PositionX);
+			continue;
+		}
+		if (channel_name == "Yposition") {
+			root.add_pos_channel(PositionChannel::PositionY);
+			continue;
+		}
+		if (channel_name == "Zposition") {
+			root.add_pos_channel(PositionChannel::PositionZ);
+			continue;
+		}
+		_errors.append(vformat("Invalid channel name \"%s\"", _input.c_str()));
+		return false;
+	}
 	return true;
 }
 
@@ -147,7 +174,6 @@ void BVHParser::_parse_hierarchy(Frames& frames)
 {
 	_expect("HIERARCHY");
 	if (_expect("ROOT")) _parse_root(frames);
-	UtilityFunctions::print(vformat("%d frame parse states", _frame_parse_states.size()));
 }
 
 void BVHParser::_parse_root(Frames& frames)
@@ -160,7 +186,7 @@ void BVHParser::_parse_root(Frames& frames)
 	_offset(offset);
 	frames.get_root().set_offset(offset);
 
-	_channels();
+	_channels(frames.get_root());
 
 	_parse_joints(frames);
 	if (_input != "}") {
@@ -170,15 +196,18 @@ void BVHParser::_parse_root(Frames& frames)
 
 void BVHParser::_parse_joint(Frames& frames)
 {
+	JointFrames& joint = frames.add_joint();
+
 	std::string joint_name = _string();
+	joint.set_name("Model_" + joint_name);
 	_expect("{");
 
 	Vector3 offset;
 	_offset(offset);
+	joint.set_offset(offset);
 
-	frames.add_joint("Model_" + joint_name, offset);
 
-	_channels();
+	_channels(joint);
 
 	_parse_joints(frames);
 	if (_input != "}") {
@@ -215,82 +244,77 @@ void BVHParser::_parse_motion(Frames& frames)
 
 void BVHParser::_parse_frame(int frame, Frames& frames)
 {
-	std::getline(_stream, _input);
-	std::istringstream frame_stream(_input);
-	int joint = 0; // start at the root
 	// parse root frame position
-	Vector3 position;
-	bool done_parsing_position = false;
-	int parse_state_idx = 0;
-	while (!done_parsing_position) {
-		switch (_frame_parse_states[parse_state_idx]) {
-		case FrameParseState::X_POSITION:
-			frame_stream >> position.x;
-			if (frame_stream.fail()) {
+	_parse_frame_positions(frame, frames.get_root());
+	_parse_frame_rotations(frame, frames.get_root());
+
+	for (int jt = 0; jt < frames.get_joint_count(); jt++) {
+		_parse_frame_rotations(frame, frames.get_joint(jt));
+	}
+
+	_stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+}
+
+void BVHParser::_parse_frame_positions(int frame, RootFrames& root)
+{
+	for (auto pos_channel : root.get_pos_channels()) {
+		switch (pos_channel) {
+		case PositionChannel::PositionX:
+			float x;
+			_stream >> x;
+			if (_stream.fail()) {
 				_errors.append("Expected XPosition number.");
 			}
+			root.set_pos_x(frame, x);
 			break;
-		case FrameParseState::Y_POSITION:
-			frame_stream >> position.y;
-			if (frame_stream.fail()) {
+		case PositionChannel::PositionY:
+			float y;
+			_stream >> y;
+			if (_stream.fail()) {
 				_errors.append("Expected YPosition number.");
 			}
+			root.set_pos_y(frame, y);
 			break;
-		case FrameParseState::Z_POSITION:
-			frame_stream >> position.z;
-			if (frame_stream.fail()) {
+		case PositionChannel::PositionZ:
+			float z;
+			_stream >> z;
+			if (_stream.fail()) {
 				_errors.append("Expected ZPosition number.");
 			}
+			root.set_pos_z(frame, z);
 			break;
-		default:
-			done_parsing_position = true;
-		}
-		parse_state_idx++;
-	}
-
-	frames.get_root().set_position(frame, position);
-	// parse rotations
-	for (; parse_state_idx < _frame_parse_states.size(); parse_state_idx++) {
-		Quaternion rotation(0, 0, 0, 1);
-		float angle;
-		switch (_frame_parse_states[parse_state_idx]) {
-		case FrameParseState::X_ROTATION: {
-			frame_stream >> angle;
-			if (frame_stream.fail()) {
-				_errors.append("Expected XRotation number.");
-			}
-			Quaternion x(Vector3(1, 0, 0), Math::deg_to_rad(angle));
-			rotation *= x;
-			break;
-		}
-		case FrameParseState::Y_ROTATION: {
-			frame_stream >> angle;
-			if (frame_stream.fail()) {
-				_errors.append("Expected YRotation number.");
-			}
-			Quaternion y(Vector3(0, 1, 0), Math::deg_to_rad(angle));
-			rotation *= y;
-			break;
-		}
-		case FrameParseState::Z_ROTATION: {
-			frame_stream >> angle;
-			if (frame_stream.fail()) {
-				_errors.append("Expected ZRotation number.");
-			}
-			Quaternion z(Vector3(0, 0, 1), Math::deg_to_rad(angle));
-			rotation *= z;
-			break;
-		}
-		case FrameParseState::NEXT_JOINT: {
-			frames.get_joint(joint++).set_rotation(frame, rotation);
-			rotation = Quaternion(0, 0, 0, 1); // reset quaternion
-			break;
-		}
 		}
 	}
+}
 
-	frame_stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-	if (!frame_stream.eof()) {
-		_errors.append("Expected end of frame.");
+void BVHParser::_parse_frame_rotations(int frame, JointFrames& joint)
+{
+	for (auto rot_channel : joint.get_rot_channels()) {
+		switch (rot_channel) {
+		case RotationChannel::RotationX:
+			float x;
+			_stream >> x;
+			if (_stream.fail()) {
+				_errors.append("Expected XPosition number.");
+			}
+			joint.set_rot_x(frame, x);
+			break;
+		case RotationChannel::RotationY:
+			float y;
+			_stream >> y;
+			if (_stream.fail()) {
+				_errors.append("Expected YPosition number.");
+			}
+			joint.set_rot_y(frame, y);
+			break;
+		case RotationChannel::RotationZ:
+			float z;
+			_stream >> z;
+			if (_stream.fail()) {
+				_errors.append("Expected ZPosition number.");
+			}
+			joint.set_rot_z(frame, z);
+			break;
+		}
 	}
 }
