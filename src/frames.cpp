@@ -69,7 +69,9 @@ void Frames::move_skeleton(Skeleton3D& skeleton, double time) const
 	float weight = time - static_cast<float>(frame) * _frame_time;
 
 	skeleton.set_bone_pose_rotation(_root.get_id(), _root.get_rotation(frame));
-	skeleton.set_global_position(_root.get_position(frame));
+	auto base = _root.get_offset();
+	auto position = _root.get_position(frame);
+	skeleton.set_global_position((position - base) * 0.01);
 
 	for (const auto& joint : _joints) {
 		skeleton.set_bone_pose_rotation(joint.get_id(), joint.get_rotation(frame));
