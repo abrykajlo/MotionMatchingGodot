@@ -30,5 +30,6 @@ protected:
 
 	Skeleton3D* _skeleton = nullptr;
 	Ref<Animations> _animations;
-	double _curr_time = 0;
+	AnimationDatabase _animation_database;
+	size_t frame = 0;
 };

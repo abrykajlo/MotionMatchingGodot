@@ -2,3 +2,6 @@
 	path = godot-cpp
 	url = https://github.com/godotengine/godot-cpp
 	branch = 4.5
+[submodule "kdtree-cpp"]
+	path = kdtree-cpp
+	url = https://github.com/cdalitz/kdtree-cpp.git

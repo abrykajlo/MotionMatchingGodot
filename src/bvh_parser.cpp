@@ -1,6 +1,6 @@
 #include "bvh_parser.h"
 
-#include "frames.h"
+#include "frame_data.h"
 
 #include <godot_cpp/variant/vector3.hpp>
 #include <godot_cpp/classes/file_access.hpp>
@@ -10,7 +10,7 @@ BVHParser::BVHParser(const String& file_path)
 	_stream = std::istringstream(FileAccess::get_file_as_string(file_path).ascii().get_data());
 }
 
-bool BVHParser::parse(Frames& frames)
+bool BVHParser::parse(FrameData& frames)
 {
 	_parse_hierarchy(frames);
 	_parse_motion(frames);
@@ -77,7 +77,7 @@ bool BVHParser::_offset(Vector3& offset)
 	return _expect("OFFSET") && _number(offset.x) && _number(offset.y) && _number(offset.z);
 }
 
-bool BVHParser::_channels(JointFrames& joint)
+bool BVHParser::_channels(JointData& joint)
 {
 	_expect("CHANNELS");
 	int count;
@@ -105,7 +105,7 @@ bool BVHParser::_channels(JointFrames& joint)
 	return true;
 }
 
-bool BVHParser::_channels(RootFrames& root)
+bool BVHParser::_channels(RootData& root)
 {
 	_expect("CHANNELS");
 	int count;
@@ -145,7 +145,7 @@ bool BVHParser::_channels(RootFrames& root)
 	return true;
 }
 
-void BVHParser::_parse_joints(Frames& frames)
+void BVHParser::_parse_joints(FrameData& frames)
 {
 	int count = 0;
 	std::string_view next = _string();
@@ -170,13 +170,13 @@ void BVHParser::_parse_joints(Frames& frames)
 	}
 }
 
-void BVHParser::_parse_hierarchy(Frames& frames)
+void BVHParser::_parse_hierarchy(FrameData& frames)
 {
 	_expect("HIERARCHY");
 	if (_expect("ROOT")) _parse_root(frames);
 }
 
-void BVHParser::_parse_root(Frames& frames)
+void BVHParser::_parse_root(FrameData& frames)
 {
 	_string();
 	frames.get_root().set_name("Model_" + _input);
@@ -194,9 +194,9 @@ void BVHParser::_parse_root(Frames& frames)
 	}
 }
 
-void BVHParser::_parse_joint(Frames& frames)
+void BVHParser::_parse_joint(FrameData& frames)
 {
-	JointFrames& joint = frames.add_joint();
+	JointData& joint = frames.add_joint();
 
 	std::string joint_name = _string();
 	joint.set_name("Model_" + joint_name);
@@ -215,15 +215,15 @@ void BVHParser::_parse_joint(Frames& frames)
 	}
 }
 
-void BVHParser::_parse_motion(Frames& frames)
+void BVHParser::_parse_motion(FrameData& frames)
 {
 	_expect("MOTION");
 
 	// parse frames
-	_expect("Frames:");
+	_expect("FrameData:");
 	int frame_count;
 	_int(frame_count);
-	frames.set_frame_count(frame_count);
+	frames.resize(frame_count);
 
 	// parse frame time
 	_expect("Frame");
@@ -242,7 +242,7 @@ void BVHParser::_parse_motion(Frames& frames)
 	_next_line();
 }
 
-void BVHParser::_parse_frame(int frame, Frames& frames)
+void BVHParser::_parse_frame(int frame, FrameData& frames)
 {
 	// parse root frame position
 	_parse_frame_positions(frame, frames.get_root());
@@ -255,7 +255,7 @@ void BVHParser::_parse_frame(int frame, Frames& frames)
 	_stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
-void BVHParser::_parse_frame_positions(int frame, RootFrames& root)
+void BVHParser::_parse_frame_positions(int frame, RootData& root)
 {
 	for (auto pos_channel : root.get_pos_channels()) {
 		switch (pos_channel) {
@@ -287,7 +287,7 @@ void BVHParser::_parse_frame_positions(int frame, RootFrames& root)
 	}
 }
 
-void BVHParser::_parse_frame_rotations(int frame, JointFrames& joint)
+void BVHParser::_parse_frame_rotations(int frame, JointData& joint)
 {
 	for (auto rot_channel : joint.get_rot_channels()) {
 		switch (rot_channel) {

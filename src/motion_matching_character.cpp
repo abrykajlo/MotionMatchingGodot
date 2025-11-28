@@ -4,8 +4,6 @@
 #include <godot_cpp/classes/input.hpp>
 #include <godot_cpp/classes/engine.hpp>
 
-#include <cassert>
-
 void MotionMatchingCharacter::set_animations(Ref<Animations> animations) {
 	_animations = animations;
 }
@@ -30,11 +28,10 @@ void MotionMatchingCharacter::_notification(int what) {
 			}
 
 			if (_animations.is_valid()) {
-				_animations->parse();
-				_animations->setup_skeleton(*_skeleton);
-
-				const Frames& frames = _animations->get(0);
-				frames.move_skeleton(*_skeleton, _curr_time);
+				_animation_database = _animations->parse();
+				if (_animation_database.setup(*_skeleton)) {
+					_animation_database.move(*_skeleton, 0, frame);
+				}
 			}
 		}
 	}
@@ -47,9 +44,6 @@ PackedStringArray MotionMatchingCharacter::_get_configuration_warnings() const
 	// parse animations
 	if (_animations.is_null()) {
 		errors.append("Animations should not be empty");
-	}
-	else {
-		_animations->parse(&errors);
 	}
 
 	// get skeleton child node
@@ -66,8 +60,8 @@ void MotionMatchingCharacter::_process(double delta_time)
 	if (Engine::get_singleton()->is_editor_hint()) {
 		return;
 	}
-	_curr_time += delta_time;
-	_animations->get(0).move_skeleton(*_skeleton, _curr_time);
+	frame++;
+	_animation_database.move(*_skeleton, 0, frame);
 }
 
 void MotionMatchingCharacter::_input(const Ref<InputEvent>& p_event)

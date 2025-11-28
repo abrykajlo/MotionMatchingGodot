@@ -45,16 +45,22 @@ add_library(${LIBNAME} SHARED)
 
 target_sources(${LIBNAME}
     PRIVATE
-    src/register_types.cpp
-    src/register_types.h
-    src/motion_matching_character.cpp
-    src/motion_matching_character.h
-    src/bvh_parser.cpp
-    src/bvh_parser.h
+    kdtree-cpp/kdtree.cpp
+    kdtree-cpp/kdtree.hpp
+    src/animation_database.cpp
+    src/animation_database.h
     src/animations.cpp
     src/animations.h
-    src/frames.cpp
-    src/frames.h
+    src/bvh_parser.cpp
+    src/bvh_parser.h
+    src/frame_data.cpp
+    src/frame_data.h
+    src/matching_database.cpp
+    src/matching_database.h
+    src/motion_matching_character.cpp
+    src/motion_matching_character.h
+    src/register_types.cpp
+    src/register_types.h
 )
 
 # Fetch a list of the xml files to use for documentation and add to our target
