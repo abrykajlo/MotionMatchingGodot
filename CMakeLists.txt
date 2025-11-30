@@ -53,6 +53,8 @@ target_sources(${LIBNAME}
     src/animations.h
     src/bvh_parser.cpp
     src/bvh_parser.h
+    src/constants.h
+    src/frame.h
     src/frame_data.cpp
     src/frame_data.h
     src/matching_database.cpp
@@ -85,6 +87,7 @@ set_target_properties(${LIBNAME}
 
     PREFIX ""
     OUTPUT_NAME "${LIBNAME}${GODOTCPP_SUFFIX}"
+    MSVC_DEBUG_INFORMATION_FORMAT "ProgramDatabase"
 )
 
 set(GODOT_PROJECT_BINARY_DIR "${PROJECT_SOURCE_DIR}/${GODOT_PROJECT_DIR}/bin/${GODOTCPP_PLATFORM}")

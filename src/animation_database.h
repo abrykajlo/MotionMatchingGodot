@@ -15,6 +15,8 @@ class Animation;
 class Root;
 class Joint;
 
+struct Frame;
+
 class AnimationDatabase {
 public:
 	AnimationDatabase();
@@ -22,7 +24,11 @@ public:
 	void add(const FrameData& frame_data);
 
 	bool setup(godot::Skeleton3D& skeleton);
-	void move(godot::Skeleton3D& skeleton, int animation, int frame);
+	void move(godot::Skeleton3D& skeleton, const Frame& frame, float local_time) const;
+	void move(godot::Skeleton3D& skeleton, const Frame& from, const Frame& to, float playback_timer, float blend_timer) const;
+
+	size_t size() const;
+	const Animation& get(size_t animation) const;
 
 private:
 	std::vector<Animation> _animations;
@@ -55,4 +61,5 @@ struct Animation {
 	Root root;
 	std::vector<Joint> joints;
 	float frame_time = 0;
+	int frames = 0;
 };

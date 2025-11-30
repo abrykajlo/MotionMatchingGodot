@@ -117,14 +117,14 @@ Quaternion JointData::get_rotation(int frame) const
 
 Quaternion RootData::get_rotation(int frame) const
 {
-	Quaternion qx(Vector3(1, 0, 0), Math::deg_to_rad(_rot_x[frame]));
+	Quaternion qy(Vector3(0, 1, 0), Math::deg_to_rad(_rot_y[frame]));
 	Quaternion qz(Vector3(0, 0, 1), Math::deg_to_rad(_rot_z[frame]));
 	Quaternion rotation;
 
 	for (auto channel : _rot_channels) {
 		switch (channel) {
-		case RotationChannel::RotationX:
-			rotation *= qx;
+		case RotationChannel::RotationY:
+			rotation *= qy;
 			break;
 		case RotationChannel::RotationZ:
 			rotation *= qz;
@@ -135,26 +135,9 @@ Quaternion RootData::get_rotation(int frame) const
 	return rotation;
 }
 
-float RootData::get_yaw_rate(int frame) const
+float RootData::get_yaw(int frame) const
 {
-	if (frame == _rot_y.size() - 1) {
-		return 0.0f;
-	}
-
-	return _rot_y[frame + 1] - _rot_y[frame];
-}
-
-Vector3 RootData::get_velocity(int frame) const
-{
-	if (frame == _pos_x.size() - 1) {
-		return Vector3();
-	}
-
-	return Vector3(
-		_pos_x[frame + 1] - _pos_x[frame],
-		_pos_y[frame + 1] - _pos_y[frame],
-		_pos_z[frame + 1] - _pos_z[frame]
-	);
+	return Math::deg_to_rad(_rot_x[frame]);
 }
 
 const std::string& JointData::get_name() const
@@ -203,7 +186,7 @@ void RootData::add_pos_channel(PositionChannel channel)
 
 Vector3 RootData::get_position(int frame) const
 {
-	return Vector3(_pos_x[frame], _pos_y[frame], _pos_z[frame]);
+	return Vector3(_pos_x[frame], _pos_y[frame], _pos_z[frame]) * 0.01;
 }
 
 const std::vector<PositionChannel>& RootData::get_pos_channels() const

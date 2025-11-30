@@ -2,7 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://bqkqca64yj1rs" path="res://resources/checker.png" id="1_o5qli"]
 [ext_resource type="Animations" uid="uid://eck5bwyli85w" path="res://resources/animations.tres" id="2_sugp2"]
-[ext_resource type="PackedScene" uid="uid://ckjfr6ag3kbab" path="res://scenes/player.tscn" id="3_sugp2"]
+[ext_resource type="PackedScene" uid="uid://fqvk6rpb5xrw" path="res://model_skeleton.fbx" id="3_sugp2"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0wfyh"]
 albedo_texture = ExtResource("1_o5qli")
@@ -40,3 +40,8 @@ camera_attributes = SubResource("CameraAttributesPhysical_ig7tw")
 animations = ExtResource("2_sugp2")
 
 [node name="Player" parent="MotionMatchingCharacter" instance=ExtResource("3_sugp2")]
+
+[node name="CameraControl" type="Node3D" parent="MotionMatchingCharacter"]
+
+[node name="Camera3D" type="Camera3D" parent="MotionMatchingCharacter/CameraControl"]
+transform = Transform3D(1, 0, 0, 0, 0.9204025, 0.3909721, 0, -0.3909721, 0.9204025, 0, 2.2404623, 2.3361814)

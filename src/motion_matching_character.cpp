@@ -1,5 +1,7 @@
 #include "motion_matching_character.h"
 
+#include "constants.h"
+
 #include <godot_cpp/classes/mesh_instance3d.hpp>
 #include <godot_cpp/classes/input.hpp>
 #include <godot_cpp/classes/engine.hpp>
@@ -19,6 +21,10 @@ void MotionMatchingCharacter::_bind_methods() {
 }
 
 void MotionMatchingCharacter::_notification(int what) {
+	if (Engine::get_singleton()->is_editor_hint()) {
+		return;
+	}
+
 	switch (what) {
 	case NOTIFICATION_READY:
 		{
@@ -27,10 +33,14 @@ void MotionMatchingCharacter::_notification(int what) {
 				_skeleton = Object::cast_to<Skeleton3D>(children[0]);
 			}
 
+			_camera_control = get_node<Node3D>("CameraControl");
+
 			if (_animations.is_valid()) {
 				_animation_database = _animations->parse();
+				_matching_database.build_database(_animation_database);
 				if (_animation_database.setup(*_skeleton)) {
-					_animation_database.move(*_skeleton, 0, frame);
+					bool next_frame = false;
+					_animation_database.move(*_skeleton, _source, 0);
 				}
 			}
 		}
@@ -52,6 +62,10 @@ PackedStringArray MotionMatchingCharacter::_get_configuration_warnings() const
 		errors.append("Expected one skeleton");
 	}
 
+	if (get_node<Node3D>("CameraControl") == nullptr) {
+		errors.append("Expected Node3D named CameraControl");
+	}
+
 	return errors;
 }
 
@@ -60,14 +74,51 @@ void MotionMatchingCharacter::_process(double delta_time)
 	if (Engine::get_singleton()->is_editor_hint()) {
 		return;
 	}
-	frame++;
-	_animation_database.move(*_skeleton, 0, frame);
-}
 
-void MotionMatchingCharacter::_input(const Ref<InputEvent>& p_event)
-{
-	Input* input = Input::get_singleton();
-	if (input->is_action_pressed("move_forward")) {
-		UtilityFunctions::print("input");
+	const Input* input = Input::get_singleton();
+	Vector2 left_input = input->get_vector("move_left", "move_right", "move_backward", "move_forward");
+	float right_input = input->get_axis("camera_left", "camera_right");
+
+	_playback_timer += delta_time;
+	
+	if (_blending) {
+		_blend_timer += delta_time;
+
+		_animation_database.move(
+			*_skeleton,
+			_source, 
+			_target, 
+			_playback_timer,
+			_blend_timer
+		);
+		
+		if (_blend_timer > k_blend_time) {
+			_blending = false;
+			_source = _target;
+			_blend_timer = 0;
+			_playback_timer = 0;
+		}
+	}
+	else {
+		UtilityFunctions::print("Animation");
+		_animation_database.move(
+			*_skeleton, 
+			_source, 
+			_playback_timer
+		);
+
+		_search_timer += delta_time;
+
+		if (_search_timer >= k_search_interval) {
+			Frame result = _matching_database.search(*_skeleton, left_input, right_input);
+			if (result != _source) {
+				_target = result;
+
+				_blending = true;
+				_blend_timer = 0;
+			}
+			
+			_search_timer = 0;
+		}
 	}
 }

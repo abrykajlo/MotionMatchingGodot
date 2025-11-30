@@ -1,5 +1,7 @@
 #include "animation_database.h"
 
+#include "constants.h"
+#include "frame.h"
 #include "frame_data.h"
 
 AnimationDatabase::AnimationDatabase() {}
@@ -25,31 +27,96 @@ bool AnimationDatabase::setup(Skeleton3D& skeleton)
 	return true;
 }
 
-void AnimationDatabase::move(Skeleton3D& skeleton, int animation, int frame)
+void AnimationDatabase::move(godot::Skeleton3D& skeleton, const Frame& from, const Frame& to, float playback_timer, float blend_timer) const
 {
-	const Animation& anim = _animations[animation];
+	const Animation& A = _animations[from.animation];
+	const Animation& B = _animations[to.animation];
 
-	skeleton.set_bone_pose_rotation(anim.root.id, anim.root.rotations[frame]);
-	//auto base = anim.root.offset;
-	//auto position = anim.root.positions[frame];
-	//skeleton.set_global_position((position - base) * 0.01);
+	// sample A
+	int baseA = int(playback_timer / A.frame_time);
+	int iA0 = baseA + from.frame;
+	int iA1 = iA0 + 1;
+	float tA = fmod(playback_timer, A.frame_time) / A.frame_time;
 
-	for (const auto& joint : anim.joints) {
-		skeleton.set_bone_pose_rotation(joint.id, joint.rotations[frame]);
+	// sample B
+	int baseB = int(playback_timer / B.frame_time);
+	int iB0 = baseB + to.frame;
+	int iB1 = iB0 + 1;
+	float tB = fmod(playback_timer, B.frame_time) / B.frame_time;
+
+	float w = Math::clamp(blend_timer / k_blend_time, 0.0f, 1.0f);
+
+	// root
+	Quaternion rootA = A.root.rotations[iA0].slerp(A.root.rotations[iA1], tA);
+	Quaternion rootB = B.root.rotations[iB0].slerp(B.root.rotations[iB1], tB);
+
+	Quaternion root = rootA.slerp(rootB, w);
+	skeleton.set_bone_pose_rotation(A.root.id, root);
+
+	// joints
+	for (int i = 0; i < A.joints.size(); ++i)
+	{
+		Quaternion poseA = A.joints[i].rotations[iA0].slerp(A.joints[i].rotations[iA1], tA);
+		Quaternion poseB = B.joints[i].rotations[iB0].slerp(B.joints[i].rotations[iB1], tB);
+
+		Quaternion q = poseA.slerp(poseB, w);
+		skeleton.set_bone_pose_rotation(A.joints[i].id, q);
 	}
+}
+
+void AnimationDatabase::move(Skeleton3D& skeleton, const Frame& frame, float playback_timer) const
+{
+	const Animation& anim = _animations[frame.animation];
+	
+	const float frame_time = anim.frame_time;
+
+	// compute sample position
+	int base = int(playback_timer / frame_time);
+	int i0 = frame.frame + base;
+	int i1 = i0 + 1;
+	
+	float t = fmod(playback_timer, frame_time) / frame_time;
+	
+	// root
+	const Quaternion& root0 = anim.root.rotations[i0];
+	const Quaternion& root1 = anim.root.rotations[i1];
+	Quaternion root = root0.slerp(root1, t);
+
+	skeleton.set_bone_pose_rotation(anim.root.id, root);
+
+	// joints
+	for (const auto& joint : anim.joints) {
+		const Quaternion& q0 = joint.rotations[i0];
+		const Quaternion& q1 = joint.rotations[i1];
+		Quaternion blended = q0.slerp(q1, t);
+
+		skeleton.set_bone_pose_rotation(joint.id, blended);
+	}
+}
+
+
+size_t AnimationDatabase::size() const
+{
+	return _animations.size();
+}
+
+const Animation& AnimationDatabase::get(size_t animation) const
+{
+	return _animations[animation];
 }
 
 Animation::Animation(const FrameData& frame_data)
 	: root(frame_data.get_root())
 	, frame_time(frame_data.get_frame_time())
+	, frames(frame_data.size() - 1)
 {
-	// subtract one from the frame count since we need the last frame to calculate root linear and angular velocity
-	const int frame_count = frame_data.size() - 1;
+	Basis basis(Vector3(0, 0, -1), Vector3(0, 1, 0), Vector3(-1, 0, 0)); // this is the default basis
 	const RootData& root_data = frame_data.get_root();
-	for (int f = 0; f < frame_count; f++) {
+	for (int f = 0; f < frames; f++) {
+		//basis.rotate
 		root.rotations[f] = root_data.get_rotation(f);
-		root.velocity[f] = root_data.get_velocity(f);
-		root.yaw_rate[f] = root_data.get_yaw_rate(f);
+		root.velocity[f] = (root_data.get_position(f + 1) - root_data.get_position(f)) / frame_time;
+		root.yaw_rate[f] = (root_data.get_yaw(f + 1) - root_data.get_yaw(f)) / frame_time;
 	}
 	
 	const int joint_count = frame_data.get_joint_count();
@@ -60,7 +127,7 @@ Animation::Animation(const FrameData& frame_data)
 	}
 
 	for (int jt = 0; jt < joint_count; jt++) {
-		for (int f = 0; f < frame_count; f++) {
+		for (int f = 0; f < frames; f++) {
 			joints[jt].rotations[f] = frame_data.get_joint(jt).get_rotation(f);
 		}
 	}

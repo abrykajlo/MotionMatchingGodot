@@ -62,6 +62,9 @@ _subresources={
 "PATH:Skeleton3D/Producer Left": {
 "import/skip_import": true
 },
+"PATH:Skeleton3D/Producer Perspective": {
+"import/skip_import": true
+},
 "PATH:Skeleton3D/Producer Right": {
 "import/skip_import": true
 },

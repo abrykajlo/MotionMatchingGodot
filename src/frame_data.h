@@ -57,8 +57,7 @@ public:
 	void resize(int size);
 
 	Quaternion get_rotation(int frame) const;
-	float get_yaw_rate(int frame) const;
-	Vector3 get_velocity(int frame) const;
+	float get_yaw(int frame) const;
 
 	void set_pos_x(int frame, float x);
 	void set_pos_y(int frame, float y);

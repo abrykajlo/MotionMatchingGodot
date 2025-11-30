@@ -1,6 +1,7 @@
 #pragma once
 
 #include "animations.h"
+#include "matching_database.h"
 
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/classes/wrapped.hpp>
@@ -22,14 +23,25 @@ public:
 
 	virtual PackedStringArray _get_configuration_warnings() const override;
 	virtual void _process(double deltaTime) override;
-	virtual void _input(const Ref<InputEvent>& p_event) override;
 
-protected:
+private:
 	static void _bind_methods();
 	void _notification(int what);
 
 	Skeleton3D* _skeleton = nullptr;
+	Node3D* _camera_control = nullptr;
+
 	Ref<Animations> _animations;
+
 	AnimationDatabase _animation_database;
-	size_t frame = 0;
+	MatchingDatabase _matching_database;
+	
+	Frame _source = { 0, 0 };
+	Frame _target;
+	bool _blending = false;
+
+	// timers
+	float _playback_timer = 0;
+	float _blend_timer = 0;
+	float _search_timer = 0;
 };
