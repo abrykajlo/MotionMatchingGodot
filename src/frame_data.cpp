@@ -112,6 +112,7 @@ Quaternion JointData::get_rotation(int frame) const
 		}
 	}
 
+	rotation.normalize();
 	return rotation;
 }
 
@@ -132,6 +133,7 @@ Quaternion RootData::get_rotation(int frame) const
 		}
 	}
 
+	rotation.normalize();
 	return rotation;
 }
 

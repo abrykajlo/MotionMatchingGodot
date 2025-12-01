@@ -27,7 +27,9 @@ public:
 private:
 	static void _bind_methods();
 	void _notification(int what);
+	bool _input_significantly_changed() const;
 
+	Node3D* _player = nullptr;
 	Skeleton3D* _skeleton = nullptr;
 	Node3D* _camera_control = nullptr;
 
@@ -36,6 +38,13 @@ private:
 	AnimationDatabase _animation_database;
 	MatchingDatabase _matching_database;
 	
+	float _yaw = 0;
+	Vector3 _position;
+
+	Vector2 _last_left_input;
+	Vector2 _left_input;
+	float _right_input;
+
 	Frame _source = { 0, 0 };
 	Frame _target;
 	bool _blending = false;

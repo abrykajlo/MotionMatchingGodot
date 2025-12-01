@@ -28,10 +28,7 @@ void MotionMatchingCharacter::_notification(int what) {
 	switch (what) {
 	case NOTIFICATION_READY:
 		{
-			TypedArray<Node> children = find_children("*", "Skeleton3D");
-			if (children.size() > 0) {
-				_skeleton = Object::cast_to<Skeleton3D>(children[0]);
-			}
+			_skeleton = get_node<Skeleton3D>("../Player/Skeleton3D");
 
 			_camera_control = get_node<Node3D>("CameraControl");
 
@@ -39,12 +36,18 @@ void MotionMatchingCharacter::_notification(int what) {
 				_animation_database = _animations->parse();
 				_matching_database.build_database(_animation_database);
 				if (_animation_database.setup(*_skeleton)) {
-					bool next_frame = false;
-					_animation_database.move(*_skeleton, _source, 0);
+					UtilityFunctions::print("Skeleton setup");
+					Transform3D transform;
+					_animation_database.move(_position, _yaw, *_skeleton, _source, 0, 0);
 				}
 			}
 		}
 	}
+}
+
+bool MotionMatchingCharacter::_input_significantly_changed() const
+{
+	return false;
 }
 
 PackedStringArray MotionMatchingCharacter::_get_configuration_warnings() const
@@ -57,9 +60,9 @@ PackedStringArray MotionMatchingCharacter::_get_configuration_warnings() const
 	}
 
 	// get skeleton child node
-	TypedArray<Node> children = find_children("*", "Skeleton3D");
-	if (children.size() != 1) {
-		errors.append("Expected one skeleton");
+	Skeleton3D* skeleton = get_node<Skeleton3D>("../Player/Skeleton3D");
+	if (skeleton == nullptr) {
+		errors.append("Expected Player sibling node with Skeleton3D child");
 	}
 
 	if (get_node<Node3D>("CameraControl") == nullptr) {
@@ -76,8 +79,8 @@ void MotionMatchingCharacter::_process(double delta_time)
 	}
 
 	const Input* input = Input::get_singleton();
-	Vector2 left_input = input->get_vector("move_left", "move_right", "move_backward", "move_forward");
-	float right_input = input->get_axis("camera_left", "camera_right");
+	_left_input = input->get_vector("move_left", "move_right", "move_backward", "move_forward");
+	_right_input = input->get_axis("camera_left", "camera_right");
 
 	_playback_timer += delta_time;
 	
@@ -85,12 +88,17 @@ void MotionMatchingCharacter::_process(double delta_time)
 		_blend_timer += delta_time;
 
 		_animation_database.move(
+			_position,
+			_yaw,
 			*_skeleton,
 			_source, 
 			_target, 
 			_playback_timer,
-			_blend_timer
+			_blend_timer,
+			delta_time
 		);
+		_position.y = 0;
+		set_position(_position);
 		
 		if (_blend_timer > k_blend_time) {
 			_blending = false;
@@ -100,17 +108,21 @@ void MotionMatchingCharacter::_process(double delta_time)
 		}
 	}
 	else {
-		UtilityFunctions::print("Animation");
 		_animation_database.move(
-			*_skeleton, 
-			_source, 
-			_playback_timer
+			_position,
+			_yaw,
+			*_skeleton,
+			_source,
+			_playback_timer,
+			delta_time
 		);
+		_position.y = 0;
+		set_position(_position);
 
 		_search_timer += delta_time;
 
-		if (_search_timer >= k_search_interval) {
-			Frame result = _matching_database.search(*_skeleton, left_input, right_input);
+		if (_search_timer >= k_search_interval || _input_significantly_changed()) {
+			Frame result = _matching_database.search(*_skeleton, _left_input, _right_input);
 			if (result != _source) {
 				_target = result;
 

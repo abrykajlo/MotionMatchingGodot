@@ -17,17 +17,19 @@ bool AnimationDatabase::setup(Skeleton3D& skeleton)
 		return false;
 	}
 
-	Animation& animation = _animations[0];
-	animation.root.id = skeleton.find_bone(animation.root.name);
+	for (int a = 0; a < _animations.size(); a++) {
+		Animation& animation = _animations[a];
+		animation.root.id = skeleton.find_bone(animation.root.name);
 
-	for (auto& joint : animation.joints) {
-		joint.id = skeleton.find_bone(joint.name);
+		for (auto& joint : animation.joints) {
+			joint.id = skeleton.find_bone(joint.name);
+		}
 	}
 
 	return true;
 }
 
-void AnimationDatabase::move(godot::Skeleton3D& skeleton, const Frame& from, const Frame& to, float playback_timer, float blend_timer) const
+void AnimationDatabase::move(Vector3& position, float& yaw, godot::Skeleton3D& skeleton, const Frame& from, const Frame& to, float playback_timer, float blend_timer, float delta_time) const
 {
 	const Animation& A = _animations[from.animation];
 	const Animation& B = _animations[to.animation];
@@ -64,7 +66,7 @@ void AnimationDatabase::move(godot::Skeleton3D& skeleton, const Frame& from, con
 	}
 }
 
-void AnimationDatabase::move(Skeleton3D& skeleton, const Frame& frame, float playback_timer) const
+void AnimationDatabase::move(Vector3& position, float& yaw, Skeleton3D& skeleton, const Frame& frame, float playback_timer, float delta_time) const
 {
 	const Animation& anim = _animations[frame.animation];
 	
@@ -78,11 +80,26 @@ void AnimationDatabase::move(Skeleton3D& skeleton, const Frame& frame, float pla
 	float t = fmod(playback_timer, frame_time) / frame_time;
 	
 	// root
+	float delta_yaw = anim.root.yaw_rate[i0] * delta_time;
+	yaw = Math::wrapf(
+		yaw + delta_yaw,
+		-Math_PI,
+		Math_PI
+	);
+
 	const Quaternion& root0 = anim.root.rotations[i0];
 	const Quaternion& root1 = anim.root.rotations[i1];
 	Quaternion root = root0.slerp(root1, t);
 
-	skeleton.set_bone_pose_rotation(anim.root.id, root);
+	skeleton.set_bone_pose_rotation(anim.root.id, root * Quaternion(Vector3(1, 0, 0), yaw));
+
+	Basis basis(Vector3(0, 0, -1), Vector3(0, 1, 0), Vector3(-1, 0, 0)); // this is the default basis
+	basis.rotate(Vector3(0, 1, 0), yaw);
+	Vector3 world_delta = basis.xform(anim.root.velocity[i0] * delta_time);
+	position += world_delta;
+	position.y = Math::lerp(anim.root.height[i0], anim.root.height[i1], t);
+
+	skeleton.set_bone_pose_position(anim.root.id, position);
 
 	// joints
 	for (const auto& joint : anim.joints) {
@@ -113,10 +130,25 @@ Animation::Animation(const FrameData& frame_data)
 	Basis basis(Vector3(0, 0, -1), Vector3(0, 1, 0), Vector3(-1, 0, 0)); // this is the default basis
 	const RootData& root_data = frame_data.get_root();
 	for (int f = 0; f < frames; f++) {
-		//basis.rotate
+		// get root rotation
 		root.rotations[f] = root_data.get_rotation(f);
-		root.velocity[f] = (root_data.get_position(f + 1) - root_data.get_position(f)) / frame_time;
-		root.yaw_rate[f] = (root_data.get_yaw(f + 1) - root_data.get_yaw(f)) / frame_time;
+		
+		// get root height
+		root.height[f] = root_data.get_position(f).y;
+		
+		// get root velocity
+		Basis convert = basis.rotated(Vector3(0, 1, 0), root_data.get_yaw(f));
+		Vector3 v = (root_data.get_position(f + 1) - root_data.get_position(f)) / frame_time;
+		v.y = 0;
+		root.velocity[f] = basis.xform(v);
+
+		float delta_yaw = Math::wrapf(
+			root_data.get_yaw(f + 1) - root_data.get_yaw(f),
+			-Math_PI,
+			Math_PI
+		);
+
+		root.yaw_rate[f] = delta_yaw / frame_time;
 	}
 	
 	const int joint_count = frame_data.get_joint_count();
@@ -140,6 +172,7 @@ Root::Root(const RootData& root_data)
 	const size_t frame_count = root_data.size();
 	rotations.resize(frame_count);
 	velocity.resize(frame_count);
+	height.resize(frame_count);
 	yaw_rate.resize(frame_count);
 }
 

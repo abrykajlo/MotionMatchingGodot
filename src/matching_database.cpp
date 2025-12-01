@@ -1,8 +1,8 @@
 #include "matching_database.h"
 
 namespace {
-	static int k_trajectory_count = 1; // number of trajectory points to calculate
-	static int k_trajectory_step = 10; // number of frames ahead to count trajectory
+	static int k_trajectory_count = 3; // number of trajectory points to calculate
+	static int k_trajectory_step = 20; // number of frames ahead to count trajectory
 }
 
 MatchingDatabase::MatchingDatabase() {}
@@ -28,7 +28,7 @@ void MatchingDatabase::build_database(const AnimationDatabase& animation_databas
 		}
 	}
 
-	//_kd_tree = std::make_unique<Kdtree::KdTree>(&_nodes);
+	_kd_tree = std::make_unique<Kdtree::KdTree>(&_nodes);
 }
 
 Frame MatchingDatabase::search(const Skeleton3D& skeleton, const Vector2& left_input, float right_input) const

@@ -36,10 +36,10 @@ mesh = SubResource("PlaneMesh_7dm0k")
 environment = SubResource("Environment_7dm0k")
 camera_attributes = SubResource("CameraAttributesPhysical_ig7tw")
 
+[node name="Player" parent="." instance=ExtResource("3_sugp2")]
+
 [node name="MotionMatchingCharacter" type="MotionMatchingCharacter" parent="."]
 animations = ExtResource("2_sugp2")
-
-[node name="Player" parent="MotionMatchingCharacter" instance=ExtResource("3_sugp2")]
 
 [node name="CameraControl" type="Node3D" parent="MotionMatchingCharacter"]
 

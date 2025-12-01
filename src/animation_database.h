@@ -23,9 +23,9 @@ public:
 
 	void add(const FrameData& frame_data);
 
-	bool setup(godot::Skeleton3D& skeleton);
-	void move(godot::Skeleton3D& skeleton, const Frame& frame, float local_time) const;
-	void move(godot::Skeleton3D& skeleton, const Frame& from, const Frame& to, float playback_timer, float blend_timer) const;
+	bool setup(Skeleton3D& skeleton);
+	void move(Vector3& position, float& yaw, Skeleton3D& skeleton, const Frame& frame, float playback_timer, float delta_time) const;
+	void move(Vector3& transform, float& yaw, Skeleton3D& skeleton, const Frame& from, const Frame& to, float playback_timer, float blend_timer, float delta_time) const;
 
 	size_t size() const;
 	const Animation& get(size_t animation) const;
@@ -39,6 +39,7 @@ struct Root {
 
 	std::vector<Quaternion> rotations;
 	std::vector<Vector3> velocity;
+	std::vector<float> height;
 	std::vector<float> yaw_rate;
 
 	uint32_t id = -1;
