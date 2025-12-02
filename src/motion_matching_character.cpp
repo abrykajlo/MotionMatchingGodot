@@ -80,7 +80,6 @@ void MotionMatchingCharacter::_process(double delta_time)
 
 	const Input* input = Input::get_singleton();
 	_left_input = input->get_vector("move_left", "move_right", "move_backward", "move_forward");
-	_right_input = input->get_axis("camera_left", "camera_right");
 
 	_playback_timer += delta_time;
 	
@@ -122,7 +121,7 @@ void MotionMatchingCharacter::_process(double delta_time)
 		_search_timer += delta_time;
 
 		if (_search_timer >= k_search_interval || _input_significantly_changed()) {
-			Frame result = _matching_database.search(*_skeleton, _left_input, _right_input);
+			Frame result = _matching_database.search(*_skeleton, _yaw, _left_input);
 			if (result != _source) {
 				_target = result;
 
@@ -133,4 +132,5 @@ void MotionMatchingCharacter::_process(double delta_time)
 			_search_timer = 0;
 		}
 	}
+	_last_left_input = _left_input;
 }

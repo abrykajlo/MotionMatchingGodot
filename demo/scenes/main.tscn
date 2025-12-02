@@ -42,6 +42,7 @@ camera_attributes = SubResource("CameraAttributesPhysical_ig7tw")
 animations = ExtResource("2_sugp2")
 
 [node name="CameraControl" type="Node3D" parent="MotionMatchingCharacter"]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0, 0, 0)
 
 [node name="Camera3D" type="Camera3D" parent="MotionMatchingCharacter/CameraControl"]
 transform = Transform3D(1, 0, 0, 0, 0.9204025, 0.3909721, 0, -0.3909721, 0.9204025, 0, 2.2404623, 2.3361814)

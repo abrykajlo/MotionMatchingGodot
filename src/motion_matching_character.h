@@ -43,7 +43,6 @@ private:
 
 	Vector2 _last_left_input;
 	Vector2 _left_input;
-	float _right_input;
 
 	Frame _source = { 0, 0 };
 	Frame _target;

@@ -4,6 +4,10 @@
 #include "frame.h"
 #include "frame_data.h"
 
+namespace {
+	const static Basis basis(Vector3(1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1));
+}
+
 AnimationDatabase::AnimationDatabase() {}
 
 void AnimationDatabase::add(const FrameData& frame_data)
@@ -49,11 +53,28 @@ void AnimationDatabase::move(Vector3& position, float& yaw, godot::Skeleton3D& s
 	float w = Math::clamp(blend_timer / k_blend_time, 0.0f, 1.0f);
 
 	// root
+	float yaw_rate = Math::lerp(A.root.yaw_rate[iA0], B.root.yaw_rate[iB0], w);
+	yaw = Math::wrapf(
+		yaw + yaw_rate * delta_time,
+		-Math_PI,
+		Math_PI
+	);
+
 	Quaternion rootA = A.root.rotations[iA0].slerp(A.root.rotations[iA1], tA);
 	Quaternion rootB = B.root.rotations[iB0].slerp(B.root.rotations[iB1], tB);
 
 	Quaternion root = rootA.slerp(rootB, w);
-	skeleton.set_bone_pose_rotation(A.root.id, root);
+	skeleton.set_bone_pose_rotation(A.root.id, root * Quaternion(Vector3(1, 0, 0), yaw));
+
+	Basis b = basis.rotated(Vector3(0, 1, 0), yaw);
+	Vector3 velocity = A.root.velocity[iA0].lerp(B.root.velocity[iB0], w);
+	Vector3 world_delta = b.xform(velocity * delta_time);
+	position += world_delta;
+	float Ay = Math::lerp(A.root.height[iA0], A.root.height[iA1], tA);
+	float By = Math::lerp(B.root.height[iB0], B.root.height[iB1], tB);
+	position.y = Math::lerp(Ay, By, w);
+
+	skeleton.set_bone_pose_position(A.root.id, position);
 
 	// joints
 	for (int i = 0; i < A.joints.size(); ++i)
@@ -93,9 +114,8 @@ void AnimationDatabase::move(Vector3& position, float& yaw, Skeleton3D& skeleton
 
 	skeleton.set_bone_pose_rotation(anim.root.id, root * Quaternion(Vector3(1, 0, 0), yaw));
 
-	Basis basis(Vector3(0, 0, -1), Vector3(0, 1, 0), Vector3(-1, 0, 0)); // this is the default basis
-	basis.rotate(Vector3(0, 1, 0), yaw);
-	Vector3 world_delta = basis.xform(anim.root.velocity[i0] * delta_time);
+	Basis b = basis.rotated(Vector3(0, 1, 0), yaw);
+	Vector3 world_delta = b.xform(anim.root.velocity[i0] * delta_time);
 	position += world_delta;
 	position.y = Math::lerp(anim.root.height[i0], anim.root.height[i1], t);
 
@@ -127,7 +147,6 @@ Animation::Animation(const FrameData& frame_data)
 	, frame_time(frame_data.get_frame_time())
 	, frames(frame_data.size() - 1)
 {
-	Basis basis(Vector3(0, 0, -1), Vector3(0, 1, 0), Vector3(-1, 0, 0)); // this is the default basis
 	const RootData& root_data = frame_data.get_root();
 	for (int f = 0; f < frames; f++) {
 		// get root rotation
