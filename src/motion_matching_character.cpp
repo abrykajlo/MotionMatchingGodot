@@ -47,7 +47,13 @@ void MotionMatchingCharacter::_notification(int what) {
 
 bool MotionMatchingCharacter::_input_significantly_changed() const
 {
-	return false;
+	const float velocity_significant_change = 0.1;
+	const float yaw_significant_change = 0.1 * Math_PI;
+
+	const float yaw_change = Math::abs(_left_input.angle() - _last_left_input.angle());
+	const float velocity_change = Math::abs(_left_input.length() - _last_left_input.length());
+
+	return yaw_change > yaw_significant_change || velocity_change > velocity_significant_change;
 }
 
 PackedStringArray MotionMatchingCharacter::_get_configuration_warnings() const
