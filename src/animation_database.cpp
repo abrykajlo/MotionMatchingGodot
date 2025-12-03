@@ -45,10 +45,10 @@ void AnimationDatabase::move(Vector3& position, float& yaw, godot::Skeleton3D& s
 	float tA = fmod(playback_timer, A.frame_time) / A.frame_time;
 
 	// sample B
-	int baseB = int(playback_timer / B.frame_time);
+	int baseB = int(blend_timer / B.frame_time);
 	int iB0 = baseB + to.frame;
 	int iB1 = iB0 + 1;
-	float tB = fmod(playback_timer, B.frame_time) / B.frame_time;
+	float tB = fmod(blend_timer, B.frame_time) / B.frame_time;
 
 	float w = Math::clamp(blend_timer / k_blend_time, 0.0f, 1.0f);
 
@@ -62,9 +62,11 @@ void AnimationDatabase::move(Vector3& position, float& yaw, godot::Skeleton3D& s
 
 	Quaternion rootA = A.root.rotations[iA0].slerp(A.root.rotations[iA1], tA);
 	Quaternion rootB = B.root.rotations[iB0].slerp(B.root.rotations[iB1], tB);
-
+	if (rootA.dot(rootB) < 0) {
+		rootB = -rootB;
+	}
 	Quaternion root = rootA.slerp(rootB, w);
-	skeleton.set_bone_pose_rotation(A.root.id, root * Quaternion(Vector3(1, 0, 0), yaw));
+	skeleton.set_bone_pose_rotation(A.root.id, Quaternion(Vector3(0, 1, 0), yaw) * root);
 
 	Basis b = basis.rotated(Vector3(0, 1, 0), yaw);
 	Vector3 velocity = A.root.velocity[iA0].lerp(B.root.velocity[iB0], w);
@@ -81,6 +83,9 @@ void AnimationDatabase::move(Vector3& position, float& yaw, godot::Skeleton3D& s
 	{
 		Quaternion poseA = A.joints[i].rotations[iA0].slerp(A.joints[i].rotations[iA1], tA);
 		Quaternion poseB = B.joints[i].rotations[iB0].slerp(B.joints[i].rotations[iB1], tB);
+		if (poseA.dot(poseB) < 0) {
+			poseB = -poseB;
+		}
 
 		Quaternion q = poseA.slerp(poseB, w);
 		skeleton.set_bone_pose_rotation(A.joints[i].id, q);
@@ -108,11 +113,14 @@ void AnimationDatabase::move(Vector3& position, float& yaw, Skeleton3D& skeleton
 		Math_PI
 	);
 
-	const Quaternion& root0 = anim.root.rotations[i0];
-	const Quaternion& root1 = anim.root.rotations[i1];
+	Quaternion root0 = anim.root.rotations[i0];
+	Quaternion root1 = anim.root.rotations[i1];
+	if (root0.dot(root1) < 0) {
+		root1 = -root1;
+	}
 	Quaternion root = root0.slerp(root1, t);
 
-	skeleton.set_bone_pose_rotation(anim.root.id, root * Quaternion(Vector3(1, 0, 0), yaw));
+	skeleton.set_bone_pose_rotation(anim.root.id, Quaternion(Vector3(0, 1, 0), yaw) * root);
 
 	Basis b = basis.rotated(Vector3(0, 1, 0), yaw);
 	Vector3 world_delta = b.xform(anim.root.velocity[i0] * delta_time);
@@ -123,8 +131,11 @@ void AnimationDatabase::move(Vector3& position, float& yaw, Skeleton3D& skeleton
 
 	// joints
 	for (const auto& joint : anim.joints) {
-		const Quaternion& q0 = joint.rotations[i0];
-		const Quaternion& q1 = joint.rotations[i1];
+		Quaternion q0 = joint.rotations[i0];
+		Quaternion q1 = joint.rotations[i1];
+		if (q0.dot(q1) < 0) {
+			q1 = -q1;
+		}
 		Quaternion blended = q0.slerp(q1, t);
 
 		skeleton.set_bone_pose_rotation(joint.id, blended);
