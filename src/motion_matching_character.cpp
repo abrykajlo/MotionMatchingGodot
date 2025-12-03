@@ -128,6 +128,9 @@ void MotionMatchingCharacter::_process(double delta_time)
 				_blending = true;
 				_blend_timer = 0;
 			}
+			else {
+				_playback_timer = 0;
+			}
 			
 			_search_timer = 0;
 		}
