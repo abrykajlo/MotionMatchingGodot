@@ -1,5 +1,6 @@
 # MotionMatchingGodot
 Motion Matching project for Computer Animation CMPT766 in Godot
+Demo Video: https://www.youtube.com/watch?v=kNxqrwMeZqw
 
 ## Setup
 ### Requirements
