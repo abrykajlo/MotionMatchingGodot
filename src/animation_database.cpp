@@ -92,18 +92,23 @@ void AnimationDatabase::move(Vector3& position, float& yaw, godot::Skeleton3D& s
 	}
 }
 
-void AnimationDatabase::move(Vector3& position, float& yaw, Skeleton3D& skeleton, const Frame& frame, float playback_timer, float delta_time) const
+void AnimationDatabase::move(Vector3& position, float& yaw, Skeleton3D& skeleton, Frame& frame, float& playback_timer, float delta_time) const
 {
 	const Animation& anim = _animations[frame.animation];
 	
 	const float frame_time = anim.frame_time;
 
 	// compute sample position
-	int base = int(playback_timer / frame_time);
-	int i0 = frame.frame + base;
+	float frames_past = playback_timer / frame_time;
+	if (frames_past > 1) {
+		frame.frame += int(frames_past);
+		playback_timer = fmod(playback_timer, frame_time);
+	}
+
+	int i0 = frame.frame;
 	int i1 = i0 + 1;
 	
-	float t = fmod(playback_timer, frame_time) / frame_time;
+	float t = playback_timer / frame_time;
 	
 	// root
 	float delta_yaw = anim.root.yaw_rate[i0] * delta_time;

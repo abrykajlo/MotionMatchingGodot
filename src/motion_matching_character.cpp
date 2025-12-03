@@ -38,7 +38,7 @@ void MotionMatchingCharacter::_notification(int what) {
 				if (_animation_database.setup(*_skeleton)) {
 					UtilityFunctions::print("Skeleton setup");
 					Transform3D transform;
-					_animation_database.move(_position, _yaw, *_skeleton, _source, 0, 0);
+					_animation_database.move(_position, _yaw, *_skeleton, _source, _playback_timer, 0);
 				}
 			}
 		}
@@ -133,9 +133,6 @@ void MotionMatchingCharacter::_process(double delta_time)
 
 				_blending = true;
 				_blend_timer = 0;
-			}
-			else {
-				_playback_timer = 0;
 			}
 			
 			_search_timer = 0;
